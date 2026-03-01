@@ -1,0 +1,170 @@
+import os
+from datetime import datetime
+import pandas as pd
+import streamlit as st
+from dotenv import load_dotenv
+from pymongo import MongoClient
+from bson import ObjectId
+
+# ---------------- CONFIG ----------------
+st.set_page_config(page_title="Revenda Cosméticos", layout="wide")
+
+load_dotenv()
+
+MONGODB_URI = os.getenv("MONGODB_URI")
+DB_NAME = os.getenv("DB_NAME")
+
+if not MONGODB_URI:
+    st.error("MONGODB_URI não encontrada no .env")
+    st.stop()
+
+client = MongoClient(MONGODB_URI)
+db = client[DB_NAME]
+
+col_produtos = db["produtos"]
+col_vendas = db["vendas"]
+
+# ---------------- UI ----------------
+st.title("📦 Sistema de Revenda de Produtos Cosméticos")
+
+tabs = st.tabs(["🧴 Produtos", "🧾 Vendas", "📊 Analytics"])
+
+# =====================================================
+# PRODUTOS
+# =====================================================
+with tabs[0]:
+    st.subheader("Cadastrar Produto")
+
+    nome = st.text_input("Nome")
+    categoria = st.text_input("Categoria")
+    preco = st.number_input("Preço", min_value=0.0)
+    estoque = st.number_input("Estoque", min_value=0)
+
+    if st.button("Cadastrar Produto"):
+        col_produtos.insert_one({
+            "nome": nome,
+            "categoria": categoria,
+            "preco": preco,
+            "estoque": estoque,
+            "criado_em": datetime.utcnow()
+        })
+        st.success("Produto cadastrado!")
+
+    st.markdown("---")
+    st.subheader("Lista de Produtos")
+
+    produtos = list(col_produtos.find())
+
+    if produtos:
+        df = pd.DataFrame(produtos)
+        df["_id"] = df["_id"].astype(str)
+        st.dataframe(df)
+    else:
+        st.info("Nenhum produto cadastrado.")
+
+# =====================================================
+# VENDAS
+# =====================================================
+with tabs[1]:
+    st.subheader("Registrar Venda")
+
+    produtos = list(col_produtos.find())
+
+    if not produtos:
+        st.info("Cadastre produtos primeiro.")
+    else:
+        opcoes = {str(p["_id"]): p for p in produtos}
+        escolha = st.selectbox(
+            "Escolha um produto",
+            [f"{str(p['_id'])} - {p['nome']}" for p in produtos]
+        )
+
+        produto_id = escolha.split(" - ")[0]
+        qtd = st.number_input("Quantidade", min_value=1)
+
+        if st.button("Registrar Venda"):
+            produto = opcoes[produto_id]
+
+            if produto["estoque"] < qtd:
+                st.error("Estoque insuficiente.")
+            else:
+                col_vendas.insert_one({
+                    "data": datetime.utcnow(),
+                    "itens": [{
+                        "produto_nome": produto["nome"],
+                        "categoria": produto["categoria"],
+                        "qtd": qtd,
+                        "preco_unit": produto["preco"]
+                    }]
+                })
+
+                col_produtos.update_one(
+                    {"_id": ObjectId(produto_id)},
+                    {"$inc": {"estoque": -qtd}}
+                )
+
+                st.success("Venda registrada!")
+
+# =====================================================
+# ANALYTICS
+# =====================================================
+with tabs[2]:
+    st.subheader("📅 Faturamento por Dia")
+
+    pipeline1 = [
+        {"$unwind": "$itens"},
+        {"$addFields": {
+            "total_item": {"$multiply": ["$itens.qtd", "$itens.preco_unit"]},
+            "dia": {"$dateToString": {"format": "%Y-%m-%d", "date": "$data"}}
+        }},
+        {"$group": {
+            "_id": "$dia",
+            "faturamento": {"$sum": "$total_item"},
+            "itens_vendidos": {"$sum": "$itens.qtd"}
+        }},
+        {"$project": {
+            "_id": 0,
+            "dia": "$_id",
+            "faturamento": {"$round": ["$faturamento", 2]},
+            "itens_vendidos": 1
+        }},
+        {"$sort": {"dia": 1}}
+    ]
+
+    resultado1 = list(col_vendas.aggregate(pipeline1))
+
+    if resultado1:
+        st.dataframe(pd.DataFrame(resultado1))
+    else:
+        st.info("Sem dados de vendas.")
+
+    st.markdown("---")
+    st.subheader("🏆 Produtos Mais Vendidos")
+
+    pipeline2 = [
+        {"$unwind": "$itens"},
+        {"$addFields": {
+            "total_item": {"$multiply": ["$itens.qtd", "$itens.preco_unit"]}
+        }},
+        {"$group": {
+            "_id": "$itens.produto_nome",
+            "categoria": {"$first": "$itens.categoria"},
+            "unidades_vendidas": {"$sum": "$itens.qtd"},
+            "faturamento_produto": {"$sum": "$total_item"}
+        }},
+        {"$project": {
+            "_id": 0,
+            "produto": "$_id",
+            "categoria": 1,
+            "unidades_vendidas": 1,
+            "faturamento_produto": {"$round": ["$faturamento_produto", 2]}
+        }},
+        {"$sort": {"unidades_vendidas": -1}}
+    ]
+
+    resultado2 = list(col_vendas.aggregate(pipeline2))
+
+    if resultado2:
+        st.dataframe(pd.DataFrame(resultado2))
+    else:
+        st.info("Sem dados para ranking.")
