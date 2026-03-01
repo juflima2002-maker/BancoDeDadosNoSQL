@@ -1,0 +1,74 @@
+from fastapi import FastAPI, HTTPException
+from pymongo import MongoClient
+from dotenv import load_dotenv
+import os
+from datetime import datetime
+
+# Carrega variáveis do .env
+load_dotenv()
+
+MONGODB_URI = os.getenv("MONGODB_URI")
+DB_NAME = os.getenv("DB_NAME")
+
+if not MONGODB_URI:
+    raise RuntimeError("Defina MONGODB_URI no arquivo .env")
+
+# Conecta ao MongoDB
+client = MongoClient(MONGODB_URI)
+db = client[DB_NAME]
+produtos = db["produtos"]
+
+app = FastAPI(title="API Revenda de Produtos Cosméticos")
+
+@app.get("/")
+def home():
+    return {"message": "API funcionando corretamente"}
+
+# INSERT MANY via API
+@app.post("/produtos/popular")
+def popular_produtos():
+    lista_produtos = [
+        {
+            "nome": "Hidratante Corporal",
+            "categoria": "Corpo",
+            "preco": 79.90,
+            "estoque": 25,
+            "criado_em": datetime.utcnow()
+        },
+        {
+            "nome": "Perfume Floral",
+            "categoria": "Fragrância",
+            "preco": 149.90,
+            "estoque": 10,
+            "criado_em": datetime.utcnow()
+        },
+        {
+            "nome": "Sabonete Vegetal",
+            "categoria": "Banho",
+            "preco": 24.90,
+            "estoque": 50,
+            "criado_em": datetime.utcnow()
+        }
+    ]
+
+    try:
+        resultado = produtos.insert_many(lista_produtos)
+        return {
+            "mensagem": "Produtos inseridos com sucesso",
+            "quantidade_inserida": len(resultado.inserted_ids),
+            "ids": [str(id) for id in resultado.inserted_ids]
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/produtos")
+def listar_produtos():
+    lista = list(produtos.find())
+    for item in lista:
+        item["_id"] = str(item["_id"])
+    return lista
+
+@app.delete("/produtos/limpar")
+def limpar_produtos():
+    resultado = produtos.delete_many({})
+    return {"deletados": resultado.deleted_count}
