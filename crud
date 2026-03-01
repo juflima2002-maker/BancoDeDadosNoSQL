@@ -1,0 +1,53 @@
+// =================================
+// BANCO DE DADOS
+// =================================
+use("revenda_cosmeticos")
+
+// =================================
+// CREATE (Inserir dados)
+// =================================
+db.produtos.insertOne({
+  nome: "Hidratante Corporal",
+  categoria: "Corpo",
+  preco: 79.90,
+  estoque: 25
+})
+
+db.produtos.insertMany([
+  {
+    nome: "Perfume Floral",
+    categoria: "Fragrância",
+    preco: 149.90,
+    estoque: 10
+  },
+  {
+    nome: "Sabonete Vegetal",
+    categoria: "Banho",
+    preco: 24.90,
+    estoque: 50
+  }
+])
+
+// =================================
+// READ (Consultar dados)
+// =================================
+db.produtos.find()
+
+// =================================
+// UPDATE (Atualizar dados)
+// =================================
+db.produtos.updateOne(
+  { nome: "Hidratante Corporal" },
+  { $set: { preco: 89.90 } }
+)
+
+db.produtos.find()
+
+// =================================
+// DELETE (Remover dados)
+// =================================
+db.produtos.deleteOne(
+  { nome: "Sabonete Vegetal" }
+)
+
+db.produtos.find()
