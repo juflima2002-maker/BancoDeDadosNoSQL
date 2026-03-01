@@ -24,10 +24,15 @@ Gerenciar de forma simples e eficiente a revenda de produtos cosméticos, contro
 ## Funcionalidades do Sistema
 
 ✅ Cadastro, edição e remoção de produtos
+
 ✅ Atualização automática do estoque após vendas
+
 ✅ Registro de vendas com data e valor
+
 ✅ Cadastro de clientes com informações básicas
+
 ✅ Consulta de histórico de vendas
+
 ✅ Busca de produtos e clientes
 
 ## Modelo de Dados (NoSQL)
