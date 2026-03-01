@@ -1,4 +1,4 @@
-## Sistema de Revenda de Produtos Cosméticos
+# Sistema de Revenda de Produtos Cosméticos
  Descrição do Sistema
 
 Este projeto consiste no desenvolvimento de um sistema de gerenciamento para revenda de produtos cosméticos, utilizando banco de dados NoSQL.
@@ -7,7 +7,7 @@ O sistema tem como objetivo organizar e controlar as operações de venda, estoq
 
 A aplicação permitirá registrar produtos disponíveis para revenda, controlar quantidades em estoque, registrar vendas e manter informações sobre clientes, garantindo maior organização e eficiência na gestão comercial.
 
-# Funcionalidade Principal
+## Funcionalidade Principal
 
 Gerenciar de forma simples e eficiente a revenda de produtos cosméticos, controlando:
 
@@ -21,7 +21,7 @@ Gerenciar de forma simples e eficiente a revenda de produtos cosméticos, contro
 
 * Histórico de transações
 
-# Funcionalidades do Sistema
+## Funcionalidades do Sistema
 
 ✅ Cadastro, edição e remoção de produtos
 ✅ Atualização automática do estoque após vendas
@@ -30,7 +30,7 @@ Gerenciar de forma simples e eficiente a revenda de produtos cosméticos, contro
 ✅ Consulta de histórico de vendas
 ✅ Busca de produtos e clientes
 
-# Modelo de Dados (NoSQL)
+## Modelo de Dados (NoSQL)
 
 O sistema utilizará coleções para armazenar:
 
@@ -42,6 +42,6 @@ O sistema utilizará coleções para armazenar:
 
 * Estoque
 
-# Objetivo do Projeto
+## Objetivo do Projeto
 
 Aplicar conceitos de banco de dados NoSQL no desenvolvimento de um sistema realista de gestão comercial, simulando o funcionamento de uma revenda de cosméticos.
