@@ -1,0 +1,79 @@
+use("revenda_cosmeticos")
+
+db.vendas.insertMany([
+  {
+    data: new Date("2026-03-01T10:00:00Z"),
+    cliente: { nome: "Ana" },
+    itens: [
+      { produto_nome: "Hidratante Corporal", categoria: "Corpo", qtd: 1, preco_unit: 79.90 }
+    ],
+    forma_pagamento: "pix"
+  },
+  {
+    data: new Date("2026-03-01T13:20:00Z"),
+    cliente: { nome: "Bruno" },
+    itens: [
+      { produto_nome: "Perfume Floral", categoria: "Fragrância", qtd: 1, preco_unit: 149.90 },
+      { produto_nome: "Sabonete Vegetal", categoria: "Banho", qtd: 2, preco_unit: 24.90 }
+    ],
+    forma_pagamento: "cartao"
+  }
+])
+
+use("revenda_cosmeticos")
+
+db.vendas.aggregate([
+  { $unwind: "$itens" },
+  {
+    $addFields: {
+      total_item: { $multiply: ["$itens.qtd", "$itens.preco_unit"] },
+      dia: { $dateToString: { format: "%Y-%m-%d", date: "$data" } }
+    }
+  },
+  {
+    $group: {
+      _id: "$dia",
+      faturamento: { $sum: "$total_item" },
+      itens_vendidos: { $sum: "$itens.qtd" }
+    }
+  },
+  {
+    $project: {
+      _id: 0,
+      dia: "$_id",
+      faturamento: { $round: ["$faturamento", 2] },
+      itens_vendidos: 1
+    }
+  },
+  { $sort: { dia: 1 } }
+])
+
+use("revenda_cosmeticos")
+
+db.vendas.aggregate([
+  { $unwind: "$itens" },
+  {
+    $addFields: {
+      total_item: { $multiply: ["$itens.qtd", "$itens.preco_unit"] }
+    }
+  },
+  {
+    $group: {
+      _id: "$itens.produto_nome",
+      categoria: { $first: "$itens.categoria" },
+      unidades_vendidas: { $sum: "$itens.qtd" },
+      faturamento_produto: { $sum: "$total_item" }
+    }
+  },
+  {
+    $project: {
+      _id: 0,
+      produto: "$_id",
+      categoria: 1,
+      unidades_vendidas: 1,
+      faturamento_produto: { $round: ["$faturamento_produto", 2] }
+    }
+  },
+  { $sort: { unidades_vendidas: -1 } },
+  { $limit: 10 }
+])
